@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stopwatch | Khushi</title>
+  <style>
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #0f1115;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    header { text-align: center; margin-bottom: 24px; max-width: 420px; }
+    header .tag {
+      font-size: 12px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #a1a1aa;
+    }
+    header h1 { font-size: 26px; margin-top: 6px; }
+    header p  { color: #a1a1aa; font-size: 14px; margin-top: 4px; }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #161922;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .clock-wrap { display: flex; justify-content: center; }
+    svg.clock { width: 240px; height: 240px; }
+
+    .display {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 44px;
+      text-align: center;
+      letter-spacing: 2px;
+      margin-top: 16px;
+    }
+
+    .status {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(113, 113, 122, 0.25);
+      color: #d4d4d8;
+    }
+    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; }
+    .pill.running { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+    .pill.running .dot { background: #34d399; animation: blink 1s infinite; }
+    .pill.paused { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+    .pill.paused .dot { background: #fbbf24; }
+    @keyframes blink { 50% { opacity: 0.3; } }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .controls button {
+      padding: 12px 0;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid #3f3f46;
+      background: rgba(39, 39, 42, 0.6);
+      color: #fff;
+      transition: background 0.15s;
+    }
+    .controls button:hover:not(:disabled) { background: #27272a; }
+    .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .controls .primary {
+      background: #10b981; color: #18181b; border: none; font-weight: 600;
+    }
+    .controls .primary:hover { background: #34d399; }
+    .controls .primary.running { background: #f59e0b; }
+    .controls .primary.running:hover { background: #fbbf24; }
+
+    .hint {
+      text-align: center;
+      font-size: 11px;
+      color: #71717a;
+      margin-top: 12px;
+    }
+    kbd {
+      background: #27272a;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 11px;
+    }
+
+    .laps-section { width: 100%; max-width: 420px; margin-top: 24px; }
+    .laps-section h2 {
+      font-size: 14px;
+      color: #d4d4d8;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .laps-section .empty {
+      color: #71717a;
+      font-size: 14px;
+      font-style: italic;
+    }
+    ol.laps {
+      list-style: none;
+      background: #161922;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    ol.laps li {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      align-items: center;
+      padding: 8px 16px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 14px;
+      border-bottom: 1px solid #27272a;
+    }
+    ol.laps li:last-child { border-bottom: none; }
+    .lap-name { color: #a1a1aa; }
+    .lap-split { text-align: center; color: #e4e4e7; }
+    .lap-split.best  { color: #34d399; }
+    .lap-split.worst { color: #fb7185; }
+    .lap-total { text-align: right; color: #71717a; }
+
+    footer {
+      margin-top: 36px;
+      font-size: 12px;
+      color: #71717a;
+      text-align: center;
+    }
+    footer span { color: #d4d4d8; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+  <header>
+ 
+    <h1>Stopwatch</h1>
+    <p>Start, pause, reset and record lap times.</p>
+  </header>
+
+  <section class="card" aria-label="Stopwatch">
+    <div class="clock-wrap">
+      <!-- analog clock face. hands are rotated via JS -->
+      <svg class="clock" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="92" fill="#0f1115" stroke="#1f2430" stroke-width="4"/>
+        <g id="ticks"></g>
+        <line id="minute-hand" x1="100" y1="100" x2="100" y2="45"
+              stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+        <line id="second-hand" x1="100" y1="110" x2="100" y2="32"
+              stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="5" fill="#f59e0b"/>
+        <circle cx="100" cy="100" r="2" fill="#0f1115"/>
+      </svg>
+    </div>
+
+    <div class="display" id="display" aria-live="polite">00:00.00</div>
+
+    <div class="status">
+      <span class="pill" id="status-pill">
+        <span class="dot"></span>
+        <span id="status-text">Ready</span>
+      </span>
+    </div>
+
+    <div class="controls">
+      <button id="lap-btn" disabled>Lap</button>
+      <button id="start-btn" class="primary">Start</button>
+      <button id="reset-btn" disabled>Reset</button>
+    </div>
+
+    <p class="hint">
+      Shortcuts: <kbd>Space</kbd> start/pause &nbsp;
+      <kbd>L</kbd> lap &nbsp;
+      <kbd>R</kbd> reset
+    </p>
+  </section>
+
+  <section class="laps-section">
+    <h2 id="laps-title">Laps</h2>
+    <p id="laps-empty" class="empty">No laps yet — press "Lap" while the timer is running.</p>
+    <ol class="laps" id="laps-list" hidden></ol>
+  </section>
+
+  <footer>
+    Made by <span>Khushi
+  </footer>
+
+  <script>
+    
+    (function drawTicks() {
+      const ticks = document.getElementById('ticks');
+      for (let i = 0; i < 60; i++) {
+        const big = i % 5 === 0;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', 100);
+        line.setAttribute('y1', big ? 14 : 16);
+        line.setAttribute('x2', 100);
+        line.setAttribute('y2', big ? 24 : 20);
+        line.setAttribute('stroke', big ? '#cbd5e1' : '#475569');
+        line.setAttribute('stroke-width', big ? 2 : 1);
+        line.setAttribute('transform', 'rotate(' + (i * 6) + ' 100 100)');
+        ticks.appendChild(line);
+      }
+    })();
+
+  
+    let elapsed = 0;       
+    let baseMs  = 0;       
+    let startTs = 0;       
+    let running = false;
+    let timerId = null;
+    const laps = [];       
+
+    
+    const display    = document.getElementById('display');
+    const statusPill = document.getElementById('status-pill');
+    const statusText = document.getElementById('status-text');
+    const startBtn   = document.getElementById('start-btn');
+    const lapBtn     = document.getElementById('lap-btn');
+    const resetBtn   = document.getElementById('reset-btn');
+    const lapsList   = document.getElementById('laps-list');
+    const lapsEmpty  = document.getElementById('laps-empty');
+    const lapsTitle  = document.getElementById('laps-title');
+    const minuteHand = document.getElementById('minute-hand');
+    const secondHand = document.getElementById('second-hand');
+
+  
+    function pad(n, w) { w = w || 2; return String(n).padStart(w, '0'); }
+
+    function format(ms) {
+      const totalCs = Math.floor(ms / 10);
+      const cs = totalCs % 100;
+      const totalSec = Math.floor(totalCs / 100);
+      const sec = totalSec % 60;
+      const min = Math.floor(totalSec / 60) % 60;
+      const hr  = Math.floor(totalSec / 3600);
+      return hr > 0
+        ? pad(hr) + ':' + pad(min) + ':' + pad(sec) + '.' + pad(cs)
+        : pad(min) + ':' + pad(sec) + '.' + pad(cs);
+    }
+
+    function render() {
+      display.textContent = format(elapsed);
+
+    
+      const totalSec = elapsed / 1000;
+      const secAngle = (totalSec % 60) * 6;
+      const minAngle = ((totalSec / 60) % 60) * 6;
+      secondHand.setAttribute('transform', 'rotate(' + secAngle + ' 100 100)');
+      minuteHand.setAttribute('transform', 'rotate(' + minAngle + ' 100 100)');
+
+      
+      statusPill.classList.remove('running', 'paused');
+      if (running) {
+        statusPill.classList.add('running');
+        statusText.textContent = 'Running';
+      } else if (elapsed > 0) {
+        statusPill.classList.add('paused');
+        statusText.textContent = 'Paused';
+      } else {
+        statusText.textContent = 'Ready';
+      }
+
+    
+      startBtn.textContent = running ? 'Pause' : (elapsed === 0 ? 'Start' : 'Resume');
+      startBtn.classList.toggle('running', running);
+      lapBtn.disabled   = !running && elapsed === 0;
+      resetBtn.disabled = elapsed === 0 && laps.length === 0;
+    }
+
+    function tick() {
+      elapsed = baseMs + (Date.now() - startTs);
+      render();
+    }
+
+   
+    function startPause() {
+      if (running) {
+        // pause -> bank time so far
+        baseMs = baseMs + (Date.now() - startTs);
+        clearInterval(timerId);
+        timerId = null;
+        running = false;
+      } else {
+        startTs = Date.now();
+        timerId = setInterval(tick, 10);
+        running = true;
+      }
+      render();
+    }
+
+    function reset() {
+      clearInterval(timerId);
+      timerId = null;
+      running = false;
+      elapsed = 0;
+      baseMs  = 0;
+      laps.length = 0;
+      renderLaps();
+      render();
+    }
+
+    function lap() {
+      if (!running && elapsed === 0) return;
+      laps.unshift(elapsed);
+      renderLaps();
+    }
+
+    function renderLaps() {
+      if (laps.length === 0) {
+        lapsList.hidden = true;
+        lapsEmpty.hidden = false;
+        lapsTitle.textContent = 'Laps';
+        return;
+      }
+      lapsEmpty.hidden = true;
+      lapsList.hidden  = false;
+      lapsTitle.textContent = 'Laps (' + laps.length + ')';
+
+      // splits + best/worst
+      const splits = laps.map((t, i) => t - (laps[i + 1] || 0));
+      let bestIdx = -1, worstIdx = -1;
+      if (splits.length > 1) {
+        let best = Infinity, worst = -Infinity;
+        splits.forEach((s, i) => {
+          if (s < best)  { best = s;  bestIdx = i; }
+          if (s > worst) { worst = s; worstIdx = i; }
+        });
+      }
+
+      lapsList.innerHTML = '';
+      laps.forEach((total, i) => {
+        const li = document.createElement('li');
+        const splitCls =
+          i === bestIdx  ? 'lap-split best'  :
+          i === worstIdx ? 'lap-split worst' : 'lap-split';
+        li.innerHTML =
+          '<span class="lap-name">Lap ' + (laps.length - i) + '</span>' +
+          '<span class="' + splitCls + '">' + format(splits[i]) + '</span>' +
+          '<span class="lap-total">' + format(total) + '</span>';
+        lapsList.appendChild(li);
+      });
+    }
+
+ 
+    startBtn.addEventListener('click', startPause);
+    lapBtn.addEventListener('click', lap);
+    resetBtn.addEventListener('click', reset);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target && e.target.tagName === 'INPUT') return;
+      if (e.code === 'Space') { e.preventDefault(); startPause(); }
+      else if (e.key.toLowerCase() === 'l') { lap(); }
+      else if (e.key.toLowerCase() === 'r') { reset(); }
+    });
+
+    render();
+  </script>
+</body>
+</html>
