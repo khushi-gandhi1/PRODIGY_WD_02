@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stopwatch | Khushi</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <h1>Stopwatch</h1>
+    <p>Start, pause, reset and record lap times.</p>
+  </header>
+
+  <section class="card" aria-label="Stopwatch">
+    <div class="clock-wrap">
+      <!-- analog clock face. hands are rotated via JS -->
+      <svg class="clock" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="92" fill="#0f1115" stroke="#1f2430" stroke-width="4"/>
+        <g id="ticks"></g>
+        <line id="minute-hand" x1="100" y1="100" x2="100" y2="45"
+              stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+        <line id="second-hand" x1="100" y1="110" x2="100" y2="32"
+              stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="5" fill="#f59e0b"/>
+        <circle cx="100" cy="100" r="2" fill="#0f1115"/>
+      </svg>
+    </div>
+
+    <div class="display" id="display" aria-live="polite">00:00.00</div>
+
+    <div class="status">
+      <span class="pill" id="status-pill">
+        <span class="dot"></span>
+        <span id="status-text">Ready</span>
+      </span>
+    </div>
+
+    <div class="controls">
+      <button id="lap-btn" disabled>Lap</button>
+      <button id="start-btn" class="primary">Start</button>
+      <button id="reset-btn" disabled>Reset</button>
+    </div>
+
+    <p class="hint">
+      Shortcuts: <kbd>Space</kbd> start/pause &nbsp;
+      <kbd>L</kbd> lap &nbsp;
+      <kbd>R</kbd> reset
+    </p>
+  </section>
+
+  <section class="laps-section">
+    <h2 id="laps-title">Laps</h2>
+    <p id="laps-empty" class="empty">No laps yet — press "Lap" while the timer is running.</p>
+    <ol class="laps" id="laps-list" hidden></ol>
+  </section>
+
+  <footer>
+    Made by <span>Khushi</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
